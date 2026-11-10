@@ -1,0 +1,99 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured",
+      "already_in_progress": "Configuration flow is already in progress",
+      "no_devices_found": "No Stem Grow Light found. Make sure it is plugged in and in range of a Bluetooth adapter or proxy. The light can't be found while the AeroGarden app is connected to it, so close the app first.",
+      "not_supported": "Device not supported"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect. The light accepts one connection at a time; if the AeroGarden app is running, even in the background, close it and try again.",
+      "unknown": "Unexpected error"
+    },
+    "flow_title": "{name}",
+    "step": {
+      "bluetooth_confirm": {
+        "description": "Do you want to set up {name}?"
+      },
+      "user": {
+        "data": {
+          "address": "Device"
+        },
+        "data_description": {
+          "address": "The Stem Grow Light to set up."
+        }
+      }
+    }
+  },
+  "entity": {
+    "number": {
+      "default_brightness": {
+        "name": "Default brightness"
+      },
+      "sunrise_duration": {
+        "name": "Sunrise duration"
+      },
+      "sunset_duration": {
+        "name": "Sunset duration"
+      }
+    },
+    "select": {
+      "light_mode": {
+        "name": "Light mode",
+        "state": {
+          "cool": "Cool",
+          "full_spectrum": "Full spectrum",
+          "warm": "Warm",
+          "white": "White"
+        }
+      }
+    },
+    "sensor": {
+      "days_planted": {
+        "name": "Days planted"
+      },
+      "plant_type": {
+        "name": "Plant type",
+        "state": {
+          "custom": "Custom",
+          "flowers": "Flowers",
+          "grow_bowl": "Grow bowl",
+          "herbs": "Herbs",
+          "lettuce": "Lettuce",
+          "peppers": "Peppers",
+          "salads": "Salads",
+          "seed_starting": "Seed starting",
+          "tomatoes": "Tomatoes",
+          "veggies": "Veggies"
+        }
+      }
+    },
+    "switch": {
+      "sunrise_sunset": {
+        "name": "Sunrise and sunset"
+      }
+    },
+    "time": {
+      "light_off_time": {
+        "name": "Light off time"
+      },
+      "light_on_time": {
+        "name": "Light on time"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Could not connect to the Stem Grow Light: {error}"
+    },
+    "communication_error": {
+      "message": "Error communicating with the Stem Grow Light: {error}"
+    },
+    "device_not_found": {
+      "message": "Could not find the Stem Grow Light with address {address}: {reason}"
+    },
+    "light_busy": {
+      "message": "The Stem Grow Light can't be reached right now. It accepts one connection at a time; if the AeroGarden app is running, even in the background, close it and try again."
+    }
+  }
+}

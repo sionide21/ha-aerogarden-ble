@@ -1,0 +1,22 @@
+{
+  "domain": "aerogarden_ble",
+  "name": "AeroGarden Bluetooth",
+  "bluetooth": [
+    {
+      "connectable": true,
+      "local_name": "Stem GrowLight*",
+      "service_uuid": "0000af30-0000-1000-8000-00805f9b34fb"
+    }
+  ],
+  "categories": ["garden_plants", "lighting.bulbs_lamps"],
+  "codeowners": ["@sionide21"],
+  "config_flow": true,
+  "connectivity": ["bluetooth"],
+  "dependencies": ["bluetooth_adapters"],
+  "documentation": "https://github.com/sionide21/ha-aerogarden-ble",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/sionide21/ha-aerogarden-ble/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

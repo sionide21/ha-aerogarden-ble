@@ -1,0 +1,47 @@
+{
+  "entity": {
+    "number": {
+      "default_brightness": {
+        "default": "mdi:brightness-percent"
+      },
+      "sunrise_duration": {
+        "default": "mdi:weather-sunset-up"
+      },
+      "sunset_duration": {
+        "default": "mdi:weather-sunset-down"
+      }
+    },
+    "select": {
+      "light_mode": {
+        "default": "mdi:palette",
+        "state": {
+          "cool": "mdi:snowflake",
+          "full_spectrum": "mdi:looks",
+          "warm": "mdi:fire",
+          "white": "mdi:white-balance-sunny"
+        }
+      }
+    },
+    "sensor": {
+      "days_planted": {
+        "default": "mdi:sprout"
+      },
+      "plant_type": {
+        "default": "mdi:flower"
+      }
+    },
+    "switch": {
+      "sunrise_sunset": {
+        "default": "mdi:weather-sunset"
+      }
+    },
+    "time": {
+      "light_off_time": {
+        "default": "mdi:lightbulb-off-outline"
+      },
+      "light_on_time": {
+        "default": "mdi:lightbulb-on-outline"
+      }
+    }
+  }
+}

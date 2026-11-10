@@ -1,0 +1,61 @@
+[project]
+name = "ha-aerogarden-ble"
+version = "0.1.0"
+description = "Home Assistant integration for the AeroGarden Stem Grow Light"
+requires-python = ">=3.14"
+license = "MIT"
+
+[dependency-groups]
+# Pinned to what Home Assistant 2026.11.0 ships.
+dev = [
+    "homeassistant==2026.11.0",
+    "pytest-homeassistant[bluetooth]==2026.11.0",
+    "bleak==3.0.2",
+    "bleak-retry-connector==4.7.1",
+    "bluetooth-adapters==2.4.0",
+    "dbus-fast==5.0.22",
+    "habluetooth==7.1.2",
+    "mypy==2.4.1",
+    "ruff==0.17.4",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# Let Home Assistant install its httpx alias before respx is imported.
+addopts = "-p no:respx"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["B", "BLE", "D", "E", "F", "I", "PL", "RUF", "SIM", "UP", "W"]
+# As in Home Assistant core: _attr_ class defaults are mutable on purpose.
+ignore = [
+    "D202",
+    "D203",
+    "D213",
+    "E501",
+    "PLR0911",
+    "PLR0913",
+    "PLR0917",
+    "PLR2004",
+    "RUF012",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "PLC0415"]
+"scripts/*" = ["D", "T201"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["custom_components", "homeassistant"]
+forced-separate = ["tests"]
+combine-as-imports = true
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+files = ["custom_components"]

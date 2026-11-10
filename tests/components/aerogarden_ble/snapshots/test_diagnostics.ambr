@@ -1,0 +1,46 @@
+# serializer version: 1
+# name: test_diagnostics
+  dict({
+    'last_poll_successful': True,
+    'last_status_packet': 'c5150004de00c0a800040800120058022601641e1e026403000010',
+    'service_info': dict({
+      'address': '**REDACTED**',
+      'advertisement': '**REDACTED**',
+      'connectable': True,
+      'device': '**REDACTED**',
+      'manufacturer_data': '**REDACTED**',
+      'name': '**REDACTED**',
+      'raw': None,
+      'rssi': -60,
+      'service_data': dict({
+      }),
+      'service_uuids': list([
+        '0000af30-0000-1000-8000-00805f9b34fb',
+      ]),
+      'source': '**REDACTED**',
+      'tx_power': -127,
+    }),
+    'status': dict({
+      'brightness': 100,
+      'clock_seconds': 43200,
+      'clock_set': True,
+      'days_planted': 294,
+      'default_brightness': 100,
+      'extra': '0000',
+      'flags': 4,
+      'light_mode': 2,
+      'light_off_time': list([
+        18,
+        0,
+      ]),
+      'light_on_time': list([
+        8,
+        0,
+      ]),
+      'on_duration_minutes': 600,
+      'plant_type': 0,
+      'sunrise_duration': 30,
+      'sunset_duration': 30,
+    }),
+  })
+# ---
