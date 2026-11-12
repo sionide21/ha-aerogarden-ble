@@ -35,9 +35,9 @@ unset or off by more than a minute.
 2. Search for **AeroGarden Bluetooth** and install it. If it isn't listed yet,
    add `https://github.com/sionide21/ha-aerogarden-ble` as a custom repository.
 3. Go to **Settings > Devices & services > Add integration** and pick
-   **AeroGarden Bluetooth**. Lights in range are listed straight away, with no
-   restart needed. After the next restart, new lights are also discovered
-   automatically.
+   **AeroGarden Bluetooth**. Lights in range are listed, with no restart
+   needed; if none has been heard yet, it keeps looking for up to 15 seconds.
+   After the next restart, new lights are also discovered automatically.
 
 Home Assistant 2026.11 or later and a Bluetooth adapter or proxy are required.
 
