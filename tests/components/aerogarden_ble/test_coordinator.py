@@ -3,7 +3,6 @@
 from collections.abc import Generator
 from dataclasses import replace
 import datetime as dt
-from itertools import count
 import logging
 from unittest.mock import patch
 
@@ -27,7 +26,6 @@ from . import ADDRESS, STEM_SERVICE_INFO, make_service_info
 from tests.fake_light import FakeStemLight
 
 LIGHT = "light.stem_growlight_eeff"
-_adverts = count(1)
 
 
 @pytest.fixture(autouse=True)
@@ -92,15 +90,16 @@ def test_crossed_boundary(
 async def _advertise_and_wait(
     hass: HomeAssistant, freezer: FrozenDateTimeFactory, delta: dt.timedelta
 ) -> None:
-    """Move time on, then let an advertisement trigger a poll."""
+    """Move time on while the light keeps advertising, as it does."""
     freezer.tick(delta)
-    # Unique data gets past the bluetooth manager's deduplication.
+    # The light's advertisement never changes, so the bluetooth manager
+    # doesn't pass these on to the coordinator; only their time is kept.
     inject_bluetooth_service_info(
         hass,
         make_service_info(
             "Stem GrowLight",
             ADDRESS,
-            {0x05D6: next(_adverts).to_bytes(4)},
+            STEM_SERVICE_INFO.manufacturer_data,
             # The manager judges staleness by the real monotonic clock.
             time=monotonic_time_coarse(),
         ),
@@ -124,6 +123,27 @@ async def test_polls_every_five_minutes(
 
     await _advertise_and_wait(hass, frozen_time, dt.timedelta(minutes=5))
     assert hass.states.get(LIGHT).attributes["brightness"] == 102
+
+
+async def test_no_poll_while_light_busy(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_light: FakeStemLight,
+    frozen_time: FrozenDateTimeFactory,
+) -> None:
+    """While the light is silent, such as when the app has it, no poll is tried."""
+    assert fake_light.client is not None
+    fake_light.client.drop()
+
+    frozen_time.tick(dt.timedelta(minutes=6))
+    with patch(
+        "custom_components.aerogarden_ble.coordinator.monotonic_time_coarse",
+        return_value=1e12,
+    ):
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert fake_light.connect_count == 1
 
 
 async def test_polls_at_schedule_boundary(

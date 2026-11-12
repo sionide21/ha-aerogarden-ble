@@ -17,10 +17,17 @@ from homeassistant.components.bluetooth.active_update_coordinator import (
     ActiveBluetoothDataUpdateCoordinator,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
-from .const import BOUNDARY_DELAY, POLL_INTERVAL, REACHABLE_TIMEOUT, RETRY_INTERVAL
+from .const import (
+    BOUNDARY_DELAY,
+    POLL_CHECK_INTERVAL,
+    POLL_INTERVAL,
+    REACHABLE_TIMEOUT,
+    RETRY_INTERVAL,
+)
 from .stemlight import LightStatus, StemLight, StemLightError
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,7 +60,7 @@ def crossed_boundary(status: LightStatus, since: dt.datetime, now: dt.datetime) 
 
 
 class AeroGardenCoordinator(ActiveBluetoothDataUpdateCoordinator[None]):
-    """Poll the light when an advertisement shows it is in range."""
+    """Poll the light on a timer while it is in range."""
 
     def __init__(self, hass: HomeAssistant, device: StemLight, title: str) -> None:
         """Initialize the coordinator."""
@@ -71,6 +78,38 @@ class AeroGardenCoordinator(ActiveBluetoothDataUpdateCoordinator[None]):
         self.last_update = dt_util.now()
         # Commands and the light's own pushes report status between polls.
         device.register_callback(self._async_handle_status)
+
+    @callback
+    @override
+    def async_start(self) -> CALLBACK_TYPE:
+        """Start listening for advertisements, and the poll timer."""
+        stop_listening = super().async_start()
+        stop_timer = async_track_time_interval(
+            self.hass, self._async_poll_if_due, POLL_CHECK_INTERVAL
+        )
+
+        @callback
+        def _stop() -> None:
+            stop_timer()
+            stop_listening()
+
+        return _stop
+
+    @callback
+    def _async_poll_if_due(self, now: dt.datetime) -> None:
+        """Poll if it's time to.
+
+        Home Assistant only passes on advertisements that changed, and the
+        light's never do, so they can't be what triggers polls.
+        """
+        info = bluetooth.async_last_service_info(
+            self.hass, self.address, connectable=True
+        )
+        if info is None or not self.light_reachable() or not self.needs_poll(info):
+            return
+        self._last_service_info = info
+        self.device.set_ble_device(info.device)
+        self._debounced_poll.async_schedule_call()
 
     @callback
     def _async_handle_status(self, status: LightStatus) -> None:
