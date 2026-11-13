@@ -18,7 +18,6 @@ from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 from bleak_retry_connector import (
     BleakClientWithServiceCache,
-    BleakNotFoundError,
     establish_connection,
     retry_bluetooth_connection_error,
 )
@@ -40,6 +39,10 @@ OPERATION_ATTEMPTS = 2
 # Connecting within a few milliseconds of a disconnect times out after 20 s;
 # two seconds later it works.
 RECONNECT_DELAY = 3.0
+# Overall limit on connecting, across establish_connection's own retries.
+# Connecting took 2.5-4.5 s, or about 6 s when a first attempt dropped, and
+# the light advertises again about 3 s after something else lets go of it.
+CONNECT_TIMEOUT = 10.0
 
 type StatusCallback = Callable[[LightStatus], None]
 
@@ -279,15 +282,20 @@ class StemLight:
                 await asyncio.sleep(wait)
             _LOGGER.debug("%s: connecting", self.name)
             try:
-                client = await establish_connection(
-                    BleakClientWithServiceCache,
-                    self._ble_device,
-                    self.name,
-                    self._disconnected,
-                    use_services_cache=True,
-                    ble_device_callback=lambda: self._ble_device,
-                )
-            except BleakNotFoundError as err:
+                async with asyncio.timeout(CONNECT_TIMEOUT):
+                    client = await establish_connection(
+                        BleakClientWithServiceCache,
+                        self._ble_device,
+                        self.name,
+                        self._disconnected,
+                        use_services_cache=True,
+                        ble_device_callback=lambda: self._ble_device,
+                    )
+            except TimeoutError as err:
+                raise StemLightConnectionError(
+                    f"{self.name}: no connection within {CONNECT_TIMEOUT:.0f}s"
+                ) from err
+            except BleakError as err:
                 # establish_connection already retried; don't repeat it all.
                 raise StemLightConnectionError(str(err)) from err
             self._expected_disconnect = False

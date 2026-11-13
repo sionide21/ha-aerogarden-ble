@@ -118,11 +118,11 @@ class AeroGardenCoordinator(ActiveBluetoothDataUpdateCoordinator[None]):
 
     @callback
     def light_reachable(self) -> bool:
-        """Return whether connecting to the light can work right now.
+        """Return whether the light has been advertising.
 
         The light advertises several times a second, except while something,
-        such as the AeroGarden app in the foreground, is connected to it.
-        Connecting without advertisements only fails after a long timeout.
+        such as the AeroGarden app, is connected to it. A hint only: the light
+        may have been let go of a moment ago, so commands still try.
         """
         if self.device.is_connected:
             return True

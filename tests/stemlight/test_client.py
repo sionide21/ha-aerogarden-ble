@@ -6,7 +6,7 @@ import datetime as dt
 from unittest.mock import patch
 
 from bleak.backends.device import BLEDevice
-from bleak_retry_connector import BleakNotFoundError
+from bleak_retry_connector import BleakConnectionError, BleakNotFoundError
 import pytest
 
 from custom_components.aerogarden_ble.stemlight import protocol
@@ -200,14 +200,40 @@ async def test_rejected_command(client: StemLight, light: FakeStemLight) -> None
         await client.set_brightness(10)
 
 
-async def test_not_found(client: StemLight, light: FakeStemLight) -> None:
-    """A light that can't be reached raises a connection error."""
+@pytest.mark.parametrize(
+    "error", [BleakNotFoundError("gone"), BleakConnectionError("refused")]
+)
+async def test_cannot_connect(
+    client: StemLight, light: FakeStemLight, error: Exception
+) -> None:
+    """Failing to connect raises at once, without retrying the retries."""
     with (
         patch(
             "custom_components.aerogarden_ble.stemlight.client.establish_connection",
-            side_effect=BleakNotFoundError("gone"),
-        ),
+            side_effect=error,
+        ) as connect,
         pytest.raises(StemLightConnectionError),
+    ):
+        await client.update()
+
+    assert connect.call_count == 1
+
+
+async def test_connect_timeout(client: StemLight, light: FakeStemLight) -> None:
+    """Connecting gives up after CONNECT_TIMEOUT, however many retries remain."""
+
+    async def _never(*args: object, **kwargs: object) -> None:
+        await asyncio.Event().wait()
+
+    with (
+        patch(
+            "custom_components.aerogarden_ble.stemlight.client.establish_connection",
+            _never,
+        ),
+        patch(
+            "custom_components.aerogarden_ble.stemlight.client.CONNECT_TIMEOUT", 0.05
+        ),
+        pytest.raises(StemLightConnectionError, match="no connection within"),
     ):
         await client.update()
 

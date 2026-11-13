@@ -1,7 +1,7 @@
 """Base entity for the AeroGarden Bluetooth integration."""
 
-from collections.abc import Coroutine
-from typing import Any, override
+from collections.abc import Awaitable
+from typing import override
 
 from homeassistant.components.bluetooth.passive_update_coordinator import (
     PassiveBluetoothCoordinatorEntity,
@@ -12,7 +12,7 @@ from homeassistant.helpers.device_registry import DeviceInfo, format_mac
 
 from .const import DOMAIN
 from .coordinator import AeroGardenCoordinator
-from .stemlight import LightStatus, StemLightError
+from .stemlight import LightStatus, StemLightConnectionError, StemLightError
 
 
 class AeroGardenEntity(PassiveBluetoothCoordinatorEntity[AeroGardenCoordinator]):
@@ -53,15 +53,21 @@ class AeroGardenEntity(PassiveBluetoothCoordinatorEntity[AeroGardenCoordinator])
         """Read the light right away, for the update entity action."""
         await self._async_command(self.coordinator.async_poll_now())
 
-    async def _async_command[T](self, coro: Coroutine[Any, Any, T]) -> T:
+    async def _async_command[T](self, coro: Awaitable[T]) -> T:
         """Run a light command, translating errors."""
-        if not self.coordinator.light_reachable():
-            coro.close()
-            raise HomeAssistantError(
-                translation_domain=DOMAIN, translation_key="light_busy"
-            )
         try:
             return await coro
+        except StemLightConnectionError as err:
+            # A silent light is most likely connected to something else.
+            if not self.coordinator.light_reachable():
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN, translation_key="light_busy"
+                ) from err
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="communication_error",
+                translation_placeholders={"error": str(err)},
+            ) from err
         except StemLightError as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,

@@ -5,6 +5,7 @@ import datetime as dt
 from typing import Any
 from unittest.mock import patch
 
+from bleak_retry_connector import BleakNotFoundError
 import pytest
 from pytest_homeassistant.common import MockConfigEntry, snapshot_platform
 from syrupy.assertion import SnapshotAssertion
@@ -23,6 +24,7 @@ from tests.fake_light import FakeStemLight
 
 PREFIX = "stem_growlight_eeff"
 MONOTONIC = "custom_components.aerogarden_ble.coordinator.monotonic_time_coarse"
+CONNECT = "custom_components.aerogarden_ble.stemlight.client.establish_connection"
 
 
 @pytest.mark.parametrize("platform", PLATFORMS)
@@ -172,40 +174,49 @@ async def test_sunrise_switch_off_when_off(
     assert hass.states.get(f"switch.{PREFIX}_sunrise_and_sunset").state == STATE_OFF
 
 
-async def test_command_when_light_busy(
+async def test_command_tries_silent_light(
     hass: HomeAssistant, init_integration: MockConfigEntry, fake_light: FakeStemLight
 ) -> None:
-    """Without recent advertisements, commands fail at once instead of timing out."""
+    """A light silent until a moment ago, as when the app just let go, is tried."""
     assert fake_light.client is not None
     fake_light.client.drop()
 
+    with patch(MONOTONIC, return_value=1e12):
+        await hass.services.async_call(
+            "light", "turn_off", {"entity_id": f"light.{PREFIX}"}, blocking=True
+        )
+
+    assert fake_light.connect_count == 2
+    assert fake_light.control_writes[-1] == protocol.set_brightness(0)
+
+
+@pytest.mark.parametrize(
+    ("silent", "translation_key"),
+    [(True, "light_busy"), (False, "communication_error")],
+)
+async def test_command_cannot_connect(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_light: FakeStemLight,
+    silent: bool,
+    translation_key: str,
+) -> None:
+    """When connecting fails, a light that has gone silent is reported as busy."""
+    assert fake_light.client is not None
+    fake_light.client.drop()
+    last = init_integration.runtime_data.device.last_disconnected
+    assert last is not None
+
     with (
-        patch(MONOTONIC, return_value=1e12),
+        patch(CONNECT, side_effect=BleakNotFoundError("gone")),
+        patch(MONOTONIC, return_value=1e12 if silent else last + 5),
         pytest.raises(HomeAssistantError) as err,
     ):
         await hass.services.async_call(
             "light", "turn_off", {"entity_id": f"light.{PREFIX}"}, blocking=True
         )
 
-    assert err.value.translation_key == "light_busy"
-    assert fake_light.connect_count == 1
-
-
-async def test_command_after_own_disconnect(
-    hass: HomeAssistant, init_integration: MockConfigEntry, fake_light: FakeStemLight
-) -> None:
-    """Right after Home Assistant lets go, the light counts as reachable."""
-    assert fake_light.client is not None
-    fake_light.client.drop()
-    last = init_integration.runtime_data.device.last_disconnected
-    assert last is not None
-
-    with patch(MONOTONIC, return_value=last + 5):
-        await hass.services.async_call(
-            "light", "turn_off", {"entity_id": f"light.{PREFIX}"}, blocking=True
-        )
-
-    assert fake_light.connect_count == 2
+    assert err.value.translation_key == translation_key
 
 
 async def test_command_error(
@@ -299,15 +310,15 @@ async def test_refresh_brings_light_back(
 async def test_refresh_when_light_busy(
     hass: HomeAssistant, init_integration: MockConfigEntry, fake_light: FakeStemLight
 ) -> None:
-    """Refreshing a light that something else holds fails at once."""
+    """Refreshing a light that something else holds says so."""
     assert fake_light.client is not None
     fake_light.client.drop()
 
     with (
+        patch(CONNECT, side_effect=BleakNotFoundError("gone")),
         patch(MONOTONIC, return_value=1e12),
         pytest.raises(HomeAssistantError) as err,
     ):
         await _press_refresh(hass)
 
     assert err.value.translation_key == "light_busy"
-    assert fake_light.connect_count == 1

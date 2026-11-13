@@ -62,8 +62,10 @@ with the app or the schedule show up shortly afterwards.
   action on any of the light's entities, for example from an automation.
 - **The AeroGarden app and Home Assistant take turns.** The light accepts one
   connection at a time. While the app is connected, Home Assistant can't reach
-  the light: commands fail straight away with a message saying so, and the
-  state isn't updated. The app also stays connected some of the time while
+  the light: commands keep trying for up to 10 seconds, so they go through if
+  you close the app in the meantime, and otherwise fail with a message saying
+  so. The state isn't updated meanwhile. The app also stays connected some of
+  the time while
   it's in the background, so close it fully when you're done with it. In the
   same way, the app can't connect for the few seconds Home Assistant is
   talking to the light. (Tested with the Android app.)
