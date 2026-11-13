@@ -48,6 +48,11 @@ class AeroGardenEntity(PassiveBluetoothCoordinatorEntity[AeroGardenCoordinator])
         assert self._device.state is not None
         return self._device.state
 
+    @override
+    async def async_update(self) -> None:
+        """Read the light right away, for the update entity action."""
+        await self._async_command(self.coordinator.async_poll_now())
+
     async def _async_command[T](self, coro: Coroutine[Any, Any, T]) -> T:
         """Run a light command, translating errors."""
         if not self.coordinator.light_reachable():

@@ -174,10 +174,19 @@ class AeroGardenCoordinator(ActiveBluetoothDataUpdateCoordinator[None]):
         finally:
             self.last_update = dt_util.now()
 
+        self._async_poll_succeeded()
+
+    async def async_poll_now(self) -> None:
+        """Read the light right away, outside the regular polls."""
+        await self.device.update()
+        self.last_update = dt_util.now()
+        self._async_poll_succeeded()
+
+    @callback
+    def _async_poll_succeeded(self) -> None:
         if not self.last_poll_successful:
             _LOGGER.info("%s is back online", self.title)
             self.last_poll_successful = True
-
         self._async_handle_bluetooth_poll()
 
     @callback

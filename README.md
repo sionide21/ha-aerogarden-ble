@@ -24,6 +24,7 @@ Wi-Fi AeroGarden gardens are not supported.
 | Sunrise duration / Sunset duration | Number | Fade lengths, in minutes. |
 | Days planted | Sensor | As set up in the app. |
 | Plant type | Sensor (diagnostic) | As chosen in the app. |
+| Refresh | Button (diagnostic) | Reads the light right away, instead of at the next regular read. |
 
 The light keeps its schedule on its own clock, which resets when it loses
 power. Home Assistant sets the clock to its own time zone whenever the clock is
@@ -56,7 +57,9 @@ with the app or the schedule show up shortly afterwards.
   to show up.** The light doesn't announce changes over Bluetooth unless
   something is connected to it, so Home Assistant only sees them the next
   time it reads the light: every 5 minutes, and just after each scheduled on
-  or off time. Changes made from Home Assistant show up straight away.
+  or off time. Changes made from Home Assistant show up straight away. To see
+  a change sooner, press the **Refresh** button, or run the **Update entity**
+  action on any of the light's entities, for example from an automation.
 - **The AeroGarden app and Home Assistant take turns.** The light accepts one
   connection at a time. While the app is connected, Home Assistant can't reach
   the light: commands fail straight away with a message saying so, and the

@@ -32,6 +32,11 @@
     }
   },
   "entity": {
+    "button": {
+      "refresh": {
+        "name": "Refresh"
+      }
+    },
     "number": {
       "default_brightness": {
         "name": "Default brightness"

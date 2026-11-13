@@ -14,6 +14,7 @@ from .coordinator import AeroGardenConfigEntry, AeroGardenCoordinator
 from .stemlight import StemLight, StemLightError
 
 PLATFORMS: list[Platform] = [
+    Platform.BUTTON,
     Platform.LIGHT,
     Platform.NUMBER,
     Platform.SELECT,

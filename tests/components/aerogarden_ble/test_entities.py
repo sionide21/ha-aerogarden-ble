@@ -1,5 +1,6 @@
 """Tests for the AeroGarden Bluetooth entities."""
 
+from collections.abc import Awaitable, Callable
 import datetime as dt
 from typing import Any
 from unittest.mock import patch
@@ -10,10 +11,11 @@ from syrupy.assertion import SnapshotAssertion
 
 from custom_components.aerogarden_ble import PLATFORMS
 from custom_components.aerogarden_ble.stemlight import LightMode, protocol
-from homeassistant.const import STATE_OFF, STATE_ON, Platform
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.setup import async_setup_component
 
 from . import setup_integration
 
@@ -240,3 +242,72 @@ async def test_unknown_plant_type(
         await hass.async_block_till_done()
 
     assert hass.states.get(f"sensor.{PREFIX}_plant_type").state == "unknown"
+
+
+async def _press_refresh(hass: HomeAssistant) -> None:
+    await hass.services.async_call(
+        "button", "press", {"entity_id": f"button.{PREFIX}_refresh"}, blocking=True
+    )
+
+
+async def _update_entity(hass: HomeAssistant) -> None:
+    await async_setup_component(hass, "homeassistant", {})
+    await hass.services.async_call(
+        "homeassistant",
+        "update_entity",
+        {"entity_id": f"sensor.{PREFIX}_days_planted"},
+        blocking=True,
+    )
+
+
+@pytest.mark.parametrize("refresh", [_press_refresh, _update_entity])
+async def test_refresh(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_light: FakeStemLight,
+    refresh: Callable[[HomeAssistant], Awaitable[None]],
+) -> None:
+    """The button and the update entity action read the light right away."""
+    fake_light.brightness = 40
+    fake_light.days_planted = 295
+    before = len(fake_light.writes)
+
+    await refresh(hass)
+
+    assert fake_light.writes[before:] == [protocol.status_query()]
+    assert hass.states.get(f"light.{PREFIX}").attributes["brightness"] == 102
+    assert hass.states.get(f"sensor.{PREFIX}_days_planted").state == "295"
+
+
+async def test_refresh_brings_light_back(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_light: FakeStemLight
+) -> None:
+    """A successful refresh ends an unavailable spell straight away."""
+    coordinator = init_integration.runtime_data
+    coordinator.last_poll_successful = False
+    coordinator.async_update_listeners()
+    assert hass.states.get(f"light.{PREFIX}").state == STATE_UNAVAILABLE
+    # The button stays usable, since refreshing is how to retry.
+    assert hass.states.get(f"button.{PREFIX}_refresh").state != STATE_UNAVAILABLE
+
+    await _press_refresh(hass)
+
+    assert coordinator.last_poll_successful
+    assert hass.states.get(f"light.{PREFIX}").state == STATE_ON
+
+
+async def test_refresh_when_light_busy(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_light: FakeStemLight
+) -> None:
+    """Refreshing a light that something else holds fails at once."""
+    assert fake_light.client is not None
+    fake_light.client.drop()
+
+    with (
+        patch(MONOTONIC, return_value=1e12),
+        pytest.raises(HomeAssistantError) as err,
+    ):
+        await _press_refresh(hass)
+
+    assert err.value.translation_key == "light_busy"
+    assert fake_light.connect_count == 1

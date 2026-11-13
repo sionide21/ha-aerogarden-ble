@@ -1,5 +1,10 @@
 {
   "entity": {
+    "button": {
+      "refresh": {
+        "default": "mdi:refresh"
+      }
+    },
     "number": {
       "default_brightness": {
         "default": "mdi:brightness-percent"
