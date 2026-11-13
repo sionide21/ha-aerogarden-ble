@@ -52,6 +52,11 @@ with the app or the schedule show up shortly afterwards.
 
 ## Known limitations
 
+- **Changes made at the light or in the AeroGarden app take up to 5 minutes
+  to show up.** The light doesn't announce changes over Bluetooth unless
+  something is connected to it, so Home Assistant only sees them the next
+  time it reads the light: every 5 minutes, and just after each scheduled on
+  or off time. Changes made from Home Assistant show up straight away.
 - **The AeroGarden app and Home Assistant take turns.** The light accepts one
   connection at a time. While the app is connected, Home Assistant can't reach
   the light: commands fail straight away with a message saying so, and the
